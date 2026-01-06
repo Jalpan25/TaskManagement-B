@@ -8,20 +8,48 @@ const router = express.Router();
 
 //register of user or admin
 router.post("/register", async (req, res) => {
-  const { name, email, password, role } = req.body;
+  try {
+    const { name, email, password } = req.body;
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+    //Validate fields all fields are required
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        message: "All fields are required",
+      });
+    }
 
-  const user = await prisma.user.create({
-    data: {
-      name,
-      email,
-      password: hashedPassword,
-      role,
-    },
-  });
+    //if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
 
-  res.json(user);
+    if (existingUser) {
+      return res.status(400).json({
+        message: "Email already registered",
+      });
+    }
+
+    
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+      },
+    });
+
+    //removing password before sending
+    const { password: _, ...safeUser } = user;
+
+    res.status(201).json(safeUser);
+  } catch (error) {
+    console.error("Register Error:", error);
+    res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
 });
 
 // login via email and password
@@ -47,7 +75,16 @@ router.post("/login", async (req, res) => {
     process.env.JWT_SECRET
   );
 
-  res.json({ token });
+  res.json({
+  token,
+  user: {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  },
+});
+
 });
 
 module.exports = router;

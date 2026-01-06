@@ -7,84 +7,162 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
-
+/////////////////////
+// USER
+/////////////////////
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String
-  role      Role     @default(USER)
+  id       Int    @id @default(autoincrement())
+  name     String
+  email    String @unique
+  password String
+  role     Role   @default(USER)
 
- 
-  createdTasks   Task[]    @relation("CreatedTasks")
-  assignedTasks  Task[]    @relation("AssignedTasks")
-  projects       Project[]
-  comments       Comment[]
+  // Relations
+  createdTasks    Task[]           @relation("CreatedTasks")
+  taskAssignments TaskAssignee[]   // 🔥 MANY-TO-MANY
+
+  createdProjects Project[]
+  memberships     ProjectMember[]
+
+  comments     Comment[]
+  activityLogs ActivityLog[]
 
   createdAt DateTime @default(now())
 }
 
-
+/////////////////////
+// PROJECT
+/////////////////////
 model Project {
-  id        Int      @id @default(autoincrement())
-  name      String
-  createdBy Int
-  creator   User     @relation(fields: [createdBy], references: [id])
+  id          Int           @id @default(autoincrement())
+  name        String
+  description String?
+  status      ProjectStatus @default(ACTIVE)
 
-  tasks     Task[]
+  createdById Int
+  createdBy   User @relation(fields: [createdById], references: [id])
+
+  members ProjectMember[]
+  tasks   Task[]
+
   createdAt DateTime @default(now())
 }
 
+/////////////////////
+// PROJECT MEMBER (JOIN TABLE)
+/////////////////////
+model ProjectMember {
+  id Int @id @default(autoincrement())
+
+  projectId Int
+  userId    Int
+  role      ProjectRole @default(MEMBER)
+
+  project Project @relation(fields: [projectId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  joinedAt DateTime @default(now())
+
+  @@unique([projectId, userId])
+}
+
+/////////////////////
+// TASK
+/////////////////////
 model Task {
   id          Int       @id @default(autoincrement())
   title       String
-  description String
+  description String?
   status      Status    @default(TODO)
   priority    Priority
-  dueDate     DateTime
+  dueDate     DateTime?
 
-  assignedTo  Int
-  createdBy  Int
-  projectId  Int
+  // Project relation
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id])
 
-  assignee   User      @relation("AssignedTasks", fields: [assignedTo], references: [id])
-  creator    User      @relation("CreatedTasks", fields: [createdBy], references: [id])
-  project    Project   @relation(fields: [projectId], references: [id])
+  // Creator (still ONE)
+  createdById Int
+  createdBy   User @relation("CreatedTasks", fields: [createdById], references: [id])
 
-  comments   Comment[]
-  logs       ActivityLog[]
+  // Assignees (MANY)
+  assignees TaskAssignee[]   
 
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  comments Comment[]
+  logs     ActivityLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
+/////////////////////
+// TASK ASSIGNEE (JOIN TABLE)
+/////////////////////
+model TaskAssignee {
+  id     Int @id @default(autoincrement())
+
+  taskId Int
+  userId Int
+
+  task Task @relation(fields: [taskId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  assignedAt DateTime @default(now())
+
+  @@unique([taskId, userId])
+}
+
+/////////////////////
+// COMMENT
+/////////////////////
 model Comment {
-  id        Int      @id @default(autoincrement())
-  content   String
+  id      Int    @id @default(autoincrement())
+  content String
 
-  taskId    Int
-  userId    Int
+  taskId Int
+  task   Task @relation(fields: [taskId], references: [id])
 
-  task      Task     @relation(fields: [taskId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
+  authorId Int
+  author   User @relation(fields: [authorId], references: [id])
 
   createdAt DateTime @default(now())
 }
 
+/////////////////////
+// ACTIVITY LOG
+/////////////////////
 model ActivityLog {
-  id        Int      @id @default(autoincrement())
-  action    String
+  id Int @id @default(autoincrement())
 
-  taskId    Int
-  task      Task     @relation(fields: [taskId], references: [id])
+  taskId Int
+  task   Task @relation(fields: [taskId], references: [id])
+
+  type     ActivityType
+  oldValue String?
+  newValue String?
+
+  createdById Int
+  createdBy   User @relation(fields: [createdById], references: [id])
 
   createdAt DateTime @default(now())
 }
 
+/////////////////////
+// ENUMS
+/////////////////////
 enum Role {
   ADMIN
   USER
+}
+
+enum ProjectRole {
+  OWNER
+  MEMBER
+}
+
+enum ProjectStatus {
+  ACTIVE
+  ARCHIVED
 }
 
 enum Status {
@@ -98,4 +176,11 @@ enum Priority {
   LOW
   MEDIUM
   HIGH
+}
+
+enum ActivityType {
+  STATUS_CHANGE
+  ASSIGNMENT_CHANGE
+  DUE_DATE_CHANGE
+  COMMENT_ADDED
 }
