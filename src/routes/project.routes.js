@@ -11,4 +11,12 @@ router.get("/:projectId", auth, controller.getProject);
 router.get("/", auth, controller.getProjects);
 router.delete("/:projectId", auth, isAdmin, controller.deleteProject);
 
+
+//INSIDE FORM API FOR GETTING ALL USERS
+router.get(
+  "/:projectId/members",
+  auth,
+  controller.getProjectMembers  
+);
+
 module.exports = router;

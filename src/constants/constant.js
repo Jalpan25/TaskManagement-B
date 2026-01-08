@@ -1,0 +1,6 @@
+const VALID_STATUSES = ["TODO", "IN_PROGRESS", "UNDER_REVIEW", "DONE"];
+const VALID_PRIORITIES = ["LOW", "MEDIUM", "HIGH"];
+module.exports = {
+  VALID_STATUSES,
+  VALID_PRIORITIES,
+};

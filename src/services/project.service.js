@@ -1,6 +1,28 @@
 const prisma = require("../prisma");
 const { mapProject } = require("./project.mapper");
 
+const {ensureProjectAccess} =require("../utils/projectAccess.util")
+//gives all member for that projects
+exports.getProjectMembers = async ({ projectId, userId }) => {
+  //  Ensure requester has access
+  await ensureProjectAccess(projectId, userId);
+
+  const members = await prisma.projectMember.findMany({
+    where: { projectId },
+    select: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  return members.map((m) => m.user);
+};
+
 
 /* CREATE PROJECT */
 exports.createProject = async ({ name, description, userId }) => {

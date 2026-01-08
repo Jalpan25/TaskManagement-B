@@ -17,6 +17,25 @@ exports.createProject = async (req, res) => {
   }
 };
 
+exports.getProjectMembers = async (req, res) => {
+  try {
+    const projectId = Number(req.params.projectId);
+    const userId = req.user.id;
+
+    const members = await projectService.getProjectMembers({
+      projectId,
+      userId,
+    });
+
+    res.json(members);
+  } catch (err) {
+    res.status(err.status || 500).json({
+      message: err.message || "Failed to fetch project members",
+    });
+  }
+};
+
+
 
 
 /* UPDATE */

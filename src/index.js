@@ -10,14 +10,21 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.send("Task Manager API is running");
 });
+
+
 app.use("/projects", projectRoutes);
 app.use(
   "/projects",
   require("./routes/projectAssignment.routes")
 );
+
+//USER PAGE FIRST PAGE API
 app.use("/user", require("./routes/user.routes"));
 
+
+//TASK ROUTES ARE HERE
 app.use("/", require("./routes/task.routes"));
+
 
 
 

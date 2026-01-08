@@ -106,6 +106,7 @@ exports.getMembers = async (projectId) => {
       joinedAt: true,
       user: {
         select: {
+          id:true,
           name: true,
           email: true,
         },
