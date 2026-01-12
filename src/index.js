@@ -2,36 +2,37 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const projectRoutes = require("./routes/project.routes");
+const authRoutes = require("./routes/auth.routes");
+const projectAssignmentRoutes = require("./routes/projectAssignment.routes");
+const userRoutes = require("./routes/user.routes")
+const taskRoutes = require("./routes/task.routes")
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+console.log("DB URL:", process.env.DATABASE_URL);
+
+
+const PORT = process.env.PORT || 5000;
 
 app.get("/", (req, res) => {
   res.send("Task Manager API is running");
 });
 
-
+app.use("/auth", authRoutes);
 app.use("/projects", projectRoutes);
 app.use(
   "/projects",
-  require("./routes/projectAssignment.routes")
+  projectAssignmentRoutes
 );
-
 //USER PAGE FIRST PAGE API
-app.use("/user", require("./routes/user.routes"));
-
-
+app.use("/user", userRoutes);
 //TASK ROUTES ARE HERE
-app.use("/", require("./routes/task.routes"));
+app.use("/", taskRoutes);
 
 
 
 
-
-const PORT = process.env.PORT || 5000;
-const authRoutes = require("./routes/auth.routes");
-app.use("/auth", authRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

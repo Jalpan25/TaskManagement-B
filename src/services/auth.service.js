@@ -41,9 +41,12 @@ exports.register = async (data) => {
 };
 
 exports.login = async (data) => {
+  console.log("USER FROM DB:", data);
+
   const parsed = loginSchema.safeParse(data);
 
   if (!parsed.success) {
+    
     throw {
       status: 400,
       message: parsed.error.issues[0].message,

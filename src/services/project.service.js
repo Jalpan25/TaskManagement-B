@@ -131,6 +131,14 @@ exports.getProjects = async (user) => {
     where.members = { some: { userId: user.id } };
   }
 
+  // userID - 6
+
+  // 1 - [3,4,5]
+  // 2 - [6,7,9]
+  // 3 - [6,4,1]
+
+  // return project : [2 , 3]
+
   const projects = await prisma.project.findMany({
     where,
     orderBy: { createdAt: "desc" },
