@@ -3,6 +3,7 @@ const router = express.Router();
 const auth = require("../middleware/auth.middleware");
 const controller = require("../controllers/task.controller");
 
+
 // Create task
 router.post("/projects/:projectId/tasks", auth, controller.createTask);
 

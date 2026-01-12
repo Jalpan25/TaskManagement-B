@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "ActivityLog" ALTER COLUMN "newValue" SET DATA TYPE TEXT,
+ALTER COLUMN "oldValue" SET DATA TYPE TEXT;

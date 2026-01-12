@@ -2,26 +2,76 @@ const prisma = require("../prisma");
 const { mapProject } = require("./project.mapper");
 
 const {ensureProjectAccess} =require("../utils/projectAccess.util")
+
+
 //gives all member for that projects
-exports.getProjectMembers = async ({ projectId, userId }) => {
-  //  Ensure requester has access
+exports.getProjectMembers = async ({
+  projectId,
+  userId,
+  page,
+  limit,
+  search,
+}) => {
   await ensureProjectAccess(projectId, userId);
 
-  const members = await prisma.projectMember.findMany({
-    where: { projectId },
-    select: {
+  if (page < 1 || limit < 1) {
+    throw { status: 400, message: "Invalid pagination values" };
+  }
+
+  const MAX_LIMIT = 50;
+  if (limit > MAX_LIMIT) {
+    throw { status: 400, message: "Limit exceeds maximum allowed" };
+  }
+
+  const skip = (page - 1) * limit;
+
+  const whereCondition = {
+    projectId,
+    ...(search && {
       user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
+        name: {
+          contains: search,
+          mode: "insensitive",
         },
       },
-    },
-  });
+    }),
+  };
 
-  return members.map((m) => m.user);
+  const [members, total] = await prisma.$transaction([
+    prisma.projectMember.findMany({
+      where: whereCondition,
+      skip,
+      take: limit,
+      orderBy: {
+        joinedAt: "desc",
+      },
+      select: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    }),
+
+    prisma.projectMember.count({
+      where: whereCondition,
+    }),
+  ]);
+
+  return {
+    data: members.map((m) => m.user),
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 };
+
 
 
 /* CREATE PROJECT */

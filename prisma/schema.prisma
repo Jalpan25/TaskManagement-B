@@ -131,6 +131,7 @@ model Comment {
   author   User @relation(fields: [authorId], references: [id])
 
   createdAt DateTime @default(now())
+  isDeleted Boolean  @default(false)
 }
 
 /////////////////////
@@ -143,7 +144,7 @@ model ActivityLog {
   task   Task @relation(fields: [taskId], references: [id])
 
   type     ActivityType
-  oldValue String?
+ oldValue String?
   newValue String?
 
   createdById Int
@@ -184,8 +185,18 @@ enum Priority {
 }
 
 enum ActivityType {
+  TASK_CREATED
+
   STATUS_CHANGE
   ASSIGNMENT_CHANGE
   DUE_DATE_CHANGE
+  PRIORITY_CHANGE
+  TITLE_CHANGE
+  DESCRIPTION_CHANGE
+
   COMMENT_ADDED
+  COMMENT_UPDATED
+  COMMENT_DELETED
 }
+
+

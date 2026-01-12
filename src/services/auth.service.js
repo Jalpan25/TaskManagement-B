@@ -41,7 +41,7 @@ exports.register = async (data) => {
 };
 
 exports.login = async (data) => {
-  console.log("USER FROM DB:", data);
+
 
   const parsed = loginSchema.safeParse(data);
 

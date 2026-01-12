@@ -86,6 +86,9 @@ exports.getTaskForEdit = async (req, res) => {
     const data = await taskService.getTaskForEdit({
       taskId: Number(req.params.taskId),
       userId: req.user.id,
+      page: Number(req.query.page) || 1,
+      limit: Number(req.query.limit) || 10,
+      search: req.query.search || "",
     });
 
     res.status(200).json(data);
@@ -95,4 +98,5 @@ exports.getTaskForEdit = async (req, res) => {
     });
   }
 };
+
 
