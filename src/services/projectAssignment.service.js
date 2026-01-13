@@ -24,12 +24,15 @@ exports.addMembers = async ({ projectId, members }) => {
   // Fetch active users
   const users = await prisma.user.findMany({
     where: {
-      id: { in: userIds },
+      id: { in: userIds },                 //get users of these userIDS
       isActive: true,
     },
   });
+  //console.log(users);
+  
 
   const validUserIds = users.map((u) => u.id);
+   
 
   if (validUserIds.length === 0) {
     throw { status: 400, message: "No valid users found" };

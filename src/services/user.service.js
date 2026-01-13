@@ -23,4 +23,19 @@ exports.getUserProjects = async (userId) => {
   });
 };
 
+// SELECT DISTINCT
+//     p.id,
+//     p.name,
+//     p.description,
+//     p.status,
+//     p.created_at
+// FROM project p
+// JOIN project_member pm
+//     ON pm.project_id = p.id
+// WHERE
+//     p.is_deleted = FALSE
+//     AND pm.user_id = :userId
+// ORDER BY
+//     p.created_at DESC;
+
 

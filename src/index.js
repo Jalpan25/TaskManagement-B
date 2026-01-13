@@ -7,6 +7,7 @@ const projectAssignmentRoutes = require("./routes/projectAssignment.routes");
 const userRoutes = require("./routes/user.routes")
 const taskRoutes = require("./routes/task.routes")
 const commentRoutes = require("./routes/comment.routes");
+projectActivityLogRoutes=require("./routes/projectActivityLog.routes")
 const app = express();
 
 app.use(cors());
@@ -26,6 +27,9 @@ app.use(
   "/projects",
   projectAssignmentRoutes
 );
+
+app.use("/projects",projectActivityLogRoutes)
+
 //USER PAGE FIRST PAGE API
 app.use("/user", userRoutes);
 //TASK ROUTES ARE HERE

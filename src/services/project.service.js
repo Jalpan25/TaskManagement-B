@@ -36,6 +36,11 @@ exports.getProjectMembers = async ({
       },
     }),
   };
+//   console.log(whereCondition);
+//   {
+//   projectId: 16,
+//   user: { name: { contains: 'a', mode: 'insensitive' } }
+// }
 
   const [members, total] = await prisma.$transaction([
     prisma.projectMember.findMany({
@@ -98,6 +103,21 @@ exports.createProject = async ({ name, description, userId }) => {
     },
   });
 
+//   BEGIN;
+
+// -- 
+// Insert project
+// INSERT INTO project (name, description, created_by_id)
+// VALUES (:name, :description, :userId)
+// RETURNING id;
+//  Insert project member (OWNER)
+// INSERT INTO project_member (project_id, user_id, role)
+// VALUES (:projectId, :userId, 'OWNER');
+
+// COMMIT;
+
+
+
   return mapProject(project);
 };
 
@@ -147,27 +167,22 @@ exports.updateProject = async ({ projectId, name, description }) => {
 exports.getProjectById = async (projectId) => {
   const project = await prisma.project.findFirst({
     where: { id: projectId, isDeleted: false },
-    include: {
-      tasks: {
-        where: { isDeleted: false },
-        select: {
-          id: true,
-          title: true,
-          status: true,
-          priority: true,
-          dueDate: true,
-        },
-      },
-    },
   });
 
   if (!project) {
     throw { status: 404, message: "Project not found" };
   }
 
+  //   id: 16,
+  // name: 'create project for test,admin remove',
+  // description: 'admin remove',
+  // status: 'ACTIVE',
+  // createdById: 4,
+  // isDeleted: false,
+  // deletedAt: null,
+  // createdAt: 2026-01-13T07:44:16.016Z
   return {
     ...mapProject(project),
-    tasks: project.tasks,
   };
 };
 

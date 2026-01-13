@@ -10,10 +10,10 @@ router.post("/projects/:projectId/tasks", auth, controller.createTask);
 // Get all tasks of project
 router.get("/projects/:projectId/tasks", auth, controller.getProjectTasks);
 
-// 🔹 Get task data for edit screen
+//  Get task data for edit screen
 router.get("/tasks/:taskId/edit", auth, controller.getTaskForEdit);
 
-// 🔹 Update task (actual update)
+//  Update task (actual update)
 router.patch("/tasks/:taskId", auth, controller.updateTask);
 
 // Delete task

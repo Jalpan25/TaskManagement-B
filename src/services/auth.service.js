@@ -8,7 +8,6 @@ const {
 
 exports.register = async (data) => {
   const parsed = registerSchema.safeParse(data);
-
   if (!parsed.success) {
     throw {
       status: 400,

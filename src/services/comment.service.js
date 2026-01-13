@@ -51,7 +51,7 @@ const parsedTaskId = Number(taskId);
         taskId,
         type: ActivityType.COMMENT_ADDED,
         oldValue: null,
-        newValue: `COMMENT:${comment.id}`,
+        newValue: content,
         createdById: userId,
       },
     });
@@ -62,8 +62,9 @@ const parsedTaskId = Number(taskId);
   });
 };
 
-/* GET COMMENTS BY TASK */
+/* GET COMMENTS BY TASKID */
 exports.getCommentsByTask = async (taskId,userId) => {
+   const parsedTaskId = Number(taskId);
   if (isNaN(taskId)) {
     throw { status: 400, message: "Invalid taskId" };
   }
@@ -76,21 +77,44 @@ exports.getCommentsByTask = async (taskId,userId) => {
   })
   ensureProjectAccess(task_projectId.projectId,userId);
 
-  const comments= prisma.comment.findMany({
-    where: { taskId },
-    include: {
+  // const comments= prisma.comment.findMany({
+  //   where: { taskId },
+  //   include: {
+  //     author: {
+  //       select: { 
+  //         id:true,
+  //         name: true },
+  //     },
+  //   },
+  //          select:{
+  //       id:true,
+  //     },
+
+  //   orderBy: { createdAt: "asc" },
+  // });
+
+    const comments = await prisma.comment.findMany({
+    where: { taskId: parsedTaskId },
+    orderBy: { createdAt: "asc" },
+    select: {
+      id: true,
+      content: true,
+      createdAt: true,
       author: {
-        select: { name: true },
+        select: {
+          id: true,
+          name: true,
+        },
       },
     },
-
-    orderBy: { createdAt: "asc" },
   });
+
   const formattedComment=(await comments).map((c)=>({
+    id:c.id,
   content: c.content,
   createdAt: c.createdAt,
   authorName: c.author.name,
-
+  authorId:c.author.id,
   }))
   return formattedComment;
 };
@@ -171,16 +195,16 @@ exports.updateComment = async ({ commentId, userId, content }) => {
 /* DELETE COMMENT */
 exports.deleteComment = async ({ commentId, userId }) => {
   const parsedCommentId = Number(commentId);
-  if (!parsedCommentId || isNaN(parsedCommentId)) {
+
+  if (isNaN(parsedCommentId)) {
     throw { status: 400, message: "Invalid commentId" };
   }
-//fetch comment
+
   const comment = await prisma.comment.findUnique({
     where: { id: parsedCommentId },
     include: {
       task: {
         select: {
-          id: true,
           projectId: true,
           isDeleted: true,
         },
@@ -188,16 +212,14 @@ exports.deleteComment = async ({ commentId, userId }) => {
     },
   });
 
-  if (!comment || comment.isDeleted || comment.task.isDeleted) {
+  if (!comment || comment.task.isDeleted) {
     throw { status: 404, message: "Comment not found" };
   }
-
 
   // Author check
   if (comment.authorId !== userId) {
     throw { status: 403, message: "You can delete only your own comment" };
   }
-
 
   return prisma.$transaction(async (tx) => {
     await tx.comment.update({
@@ -205,15 +227,17 @@ exports.deleteComment = async ({ commentId, userId }) => {
       data: { isDeleted: true },
     });
 
-    // Activity log
     await tx.activityLog.create({
       data: {
-        taskId: comment.taskId,
+        taskId: comment.taskId, 
         type: ActivityType.COMMENT_DELETED,
-        oldValue: comment.content.slice(0, 300),//write only first 300 chars
+        oldValue: comment.content.slice(0, 300),
         newValue: null,
         createdById: userId,
       },
     });
+
+    return { message: "Comment deleted successfully" };
   });
 };
+

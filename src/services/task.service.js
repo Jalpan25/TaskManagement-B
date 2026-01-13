@@ -151,6 +151,17 @@ return prisma.$transaction(async (tx) => {
       };
     }
 
+      
+  await tx.activityLog.create({
+    data: {
+      taskId: task.id,
+      type: ActivityType.TASK_CREATED,
+      oldValue: null,
+      newValue: null,
+      createdById: userId,
+    },
+  });
+
     await tx.taskAssignee.createMany({
       data: uniqueIds.map((uid) => ({
         taskId: task.id,
@@ -206,13 +217,13 @@ if (status && !VALID_STATUSES.includes(status)) {
 
   const skip = (page - 1) * limit;
 
-  // 🔹 Base condition (always applied)
+  // Base condition (always applied)
   const where = {
     projectId,
     isDeleted: false,
   };
 
-  // 🔍 Search (title)
+  // Search (title)
 if (search) {
   where.title = {
     contains: search,    //it is like these===>WHERE title ILIKE '%search%'
@@ -220,12 +231,12 @@ if (search) {
   };
 }
 
-  // 🏷 Status filter
+  // Status filter
   if (status) {
     where.status = status;
   }
 
-  // 🚦 Priority filter
+  // Priority filter
   if (priority) {
     where.priority = priority;
   }
@@ -284,7 +295,6 @@ exports.updateTask = async ({ taskId, userId, data }) => {
     removeAssigneeIds,
   } = data;
 
-  /* -------------------- VALIDATIONS -------------------- */
 
   if (status && !VALID_STATUSES.includes(status)) {
     throw { status: 400, message: "Invalid task status" };
@@ -335,14 +345,33 @@ exports.updateTask = async ({ taskId, userId, data }) => {
     }
   }
 
-  /* -------------------- OLD VALUES (FOR LOGS) -------------------- */
 
   const oldTitle = task.title;
   const oldDescription = task.description;
   const oldStatus = task.status;
   const oldDueDate = task.dueDate;
+  const oldPriority = task.priority;
 
-  /* -------------------- TRANSACTION -------------------- */
+
+  //getting assigned names from ID because to store name in log
+  const allAssigneeIds = [
+  ...(addAssigneeIds || []),
+  ...(removeAssigneeIds || []),
+];
+
+let assigneeMap = {};
+
+if (allAssigneeIds.length) {
+  const users = await prisma.user.findMany({
+    where: { id: { in: allAssigneeIds } },
+    select: { id: true, name: true },
+  });
+
+  assigneeMap = users.reduce((acc, user) => {
+    acc[user.id] = user.name;
+    return acc;
+  }, {});
+}
 
   return prisma.$transaction(async (tx) => {
     const updatedTask = await tx.task.update({
@@ -355,8 +384,6 @@ exports.updateTask = async ({ taskId, userId, data }) => {
         ...(dueDate && { dueDate: new Date(dueDate) }),
       },
     });
-
-    /* -------------------- ASSIGNEES -------------------- */
 
     if (addAssigneeIds?.length) {
       await tx.taskAssignee.createMany({
@@ -377,7 +404,6 @@ exports.updateTask = async ({ taskId, userId, data }) => {
       });
     }
 
-    /* -------------------- ACTIVITY LOGS -------------------- */
 
     // TITLE CHANGE
     if (title && title.trim() !== oldTitle) {
@@ -421,6 +447,19 @@ exports.updateTask = async ({ taskId, userId, data }) => {
       });
     }
 
+    // PRIORITY CHANGE
+if (priority && priority !== oldPriority) {
+  await tx.activityLog.create({
+    data: {
+      taskId,
+      type: ActivityType.PRIORITY_CHANGE,
+      oldValue: oldPriority,
+      newValue: priority,
+      createdById: userId,
+    },
+  });
+}
+
     // DUE DATE CHANGE
     if (dueDate) {
       const newDueDate = new Date(dueDate);
@@ -442,35 +481,37 @@ exports.updateTask = async ({ taskId, userId, data }) => {
       }
     }
 
-    // ASSIGNMENT ADDED LOGS
-    if (addAssigneeIds?.length) {
-      for (const assignedUserId of addAssigneeIds) {
-        await tx.activityLog.create({
-          data: {
-            taskId,
-            type: ActivityType.ASSIGNMENT_CHANGE,
-            oldValue: null,
-            newValue: `ASSIGNED:${assignedUserId}`,
-            createdById: userId,
-          },
-        });
-      }
-    }
+// ASSIGNMENT ADDED LOGS
+if (addAssigneeIds?.length) {
+  for (const assignedUserId of addAssigneeIds) {
+    await tx.activityLog.create({
+      data: {
+        taskId,
+        type: ActivityType.ASSIGNMENT_CHANGE,
+        oldValue: null,
+        newValue: `ASSIGNED:${assigneeMap[assignedUserId] || assignedUserId}`,
+        createdById: userId,
+      },
+    });
+  }
+}
 
-    // ASSIGNMENT REMOVED LOGS
-    if (removeAssigneeIds?.length) {
-      for (const removedUserId of removeAssigneeIds) {
-        await tx.activityLog.create({
-          data: {
-            taskId,
-            type: ActivityType.ASSIGNMENT_CHANGE,
-            oldValue: `ASSIGNED:${removedUserId}`,
-            newValue: `UNASSIGNED:${removedUserId}`,
-            createdById: userId,
-          },
-        });
-      }
-    }
+
+// ASSIGNMENT REMOVED LOGS
+if (removeAssigneeIds?.length) {
+  for (const removedUserId of removeAssigneeIds) {
+    await tx.activityLog.create({
+      data: {
+        taskId,
+        type: ActivityType.ASSIGNMENT_CHANGE,
+        oldValue: `ASSIGNED:${assigneeMap[removedUserId] || removedUserId}`,
+        newValue: `UNASSIGNED:${assigneeMap[removedUserId] || removedUserId}`,
+        createdById: userId,
+      },
+    });
+  }
+}
+
 
     return updatedTask;
   });
@@ -496,6 +537,20 @@ exports.getTaskForEdit = async ({
       assignees: { select: { userId: true } },
     },
   });
+ // console.log(task);
+  // id: 28,
+  // title: 'create task during final api check',
+  // description: 'create task during final api check',
+  // status: 'TODO',
+  // priority: 'MEDIUM',
+  // dueDate: 2026-01-14T00:00:00.000Z,
+  // projectId: 16,
+  // createdById: 5,
+  // isDeleted: false,
+  // deletedAt: null,
+  // createdAt: 2026-01-13T09:09:45.870Z,
+  // updatedAt: 2026-01-13T09:09:45.870Z,
+  // assignees: [ { userId: 5 } ]
 
   if (!task || task.isDeleted) {
     throw { status: 404, message: "Task not found" };
@@ -517,6 +572,7 @@ exports.getTaskForEdit = async ({
       },
     }),
   };
+  //console.log(whereCondition);
 
   const [members, total] = await prisma.$transaction([
     prisma.projectMember.findMany({
