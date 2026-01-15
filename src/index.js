@@ -28,7 +28,8 @@ app.use(
   projectAssignmentRoutes
 );
 
-app.use("/projects",projectActivityLogRoutes)
+app.use("/tasks", projectActivityLogRoutes);
+
 
 //USER PAGE FIRST PAGE API
 app.use("/user", userRoutes);

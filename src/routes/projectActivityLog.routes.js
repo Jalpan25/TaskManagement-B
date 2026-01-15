@@ -1,12 +1,13 @@
+// routes/taskActivityLog.routes.js
 const express = require("express");
 const router = express.Router();
-const activityLogController=require("../controllers/activityLogController")
+const activityLogController = require("../controllers/activityLogController");
 const auth = require("../middleware/auth.middleware");
 
 router.get(
-  "/:projectId/activity-logs",
+  "/:taskId/activity-logs",
   auth,
-  activityLogController.getProjectActivityLogs
+  activityLogController.getTaskActivityLogs
 );
 
 module.exports = router;
