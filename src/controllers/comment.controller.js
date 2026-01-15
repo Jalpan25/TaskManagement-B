@@ -1,29 +1,24 @@
 const commentService = require("../services/comment.service");
 
 /* CREATE COMMENT */
-exports.createComment = async (req, res) => {
+exports.createComment = async (req, res, next) => {
   try {
     const taskId = Number(req.params.taskId);
     const userId = req.user.id;
     const { content } = req.body;
 
-    if (!content?.trim()) {
-      return res.status(400).json({ message: "Comment content is required" });
-    }
-
-    const comment = await commentService.createComment({
+    const result = await commentService.createComment({
       taskId,
       userId,
-      content: content.trim(),
+      content,
     });
 
-    res.status(201).json(comment);
-  } catch (error) {
-    res.status(error.status || 500).json({
-      message: error.message || "Failed to add comment",
-    });
+    res.status(201).json(result);
+  } catch (err) {
+    next(err);
   }
 };
+
 
 /* GET COMMENTS BY TASK */
 exports.getCommentsByTask = async (req, res) => {

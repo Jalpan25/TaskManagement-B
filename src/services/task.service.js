@@ -73,12 +73,18 @@ if (assigneeIds.length > 20) {
       };
     }
 
-    if (parsedDate < new Date()) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    parsedDate.setHours(0, 0, 0, 0);
+
+    if (parsedDate < today) {
       throw {
         status: 400,
-        message: "Due date must be in the future",
+        message: "Due date must be today or in the future",
       };
     }
+
   }
 
 

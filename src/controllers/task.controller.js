@@ -67,7 +67,7 @@ exports.updateTask = async (req, res) => {
 
 
 exports.deleteTask = async (req, res) => {
-  if(!Number.isInteger(req.params.taskId))
+  if(Number.isInteger(req.params.taskId))
   {
     return res.status(400).json({ message: "Invalid TaskID" });
   }

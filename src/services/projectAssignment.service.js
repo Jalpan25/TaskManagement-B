@@ -120,12 +120,17 @@ exports.getMembers = async (projectId) => {
 
 /* REMOVE MEMBER */
 exports.removeMember = async ({ projectId, userId }) => {
+  projectId = Number(projectId);
+  userId = Number(userId);
+
   if (isNaN(projectId) || isNaN(userId)) {
     throw { status: 400, message: "Invalid input" };
   }
 
   const existing = await prisma.projectMember.findUnique({
-    where: { projectId_userId: { projectId, userId } },
+    where: {
+      projectId_userId: { projectId, userId },
+    },
   });
 
   if (!existing) {
@@ -135,29 +140,44 @@ exports.removeMember = async ({ projectId, userId }) => {
     };
   }
 
-  await prisma.projectMember.delete({
-    where: { projectId_userId: { projectId, userId } },
+  //  TRANSACTION (important)
+  await prisma.$transaction(async (tx) => {
+    // 1 Remove user from all tasks of this project
+    await tx.taskAssignee.deleteMany({
+      where: {
+        userId,
+        task: {
+          projectId,
+          isDeleted: false,
+        },
+      },
+    });
+
+    // Remove user from project
+    await tx.projectMember.delete({
+      where: {
+        projectId_userId: { projectId, userId },
+      },
+    });
   });
 };
 
+
 exports.getAvailableUsersForProject = async (projectId) => {
+  projectId = Number(projectId);
   if (isNaN(projectId)) {
     throw { status: 400, message: "Invalid project ID" };
   }
 
-  // Check project
   const project = await prisma.project.findFirst({
-    where: {
-      id: projectId,
-      isDeleted: false,
-    },
+    where: { id: projectId, isDeleted: false },
   });
 
   if (!project) {
     throw { status: 404, message: "Project not found" };
   }
 
-  // Users already assigned to project
+  // Assigned members + task count(counting user assigned in how any task)
   const assignedMembers = await prisma.projectMember.findMany({
     where: { projectId },
     select: {
@@ -166,36 +186,42 @@ exports.getAvailableUsersForProject = async (projectId) => {
           id: true,
           name: true,
           email: true,
+          taskAssignments: {
+            where: {
+              task: {
+                projectId,
+                isDeleted: false,
+              },
+            },
+            select: { id: true },
+          },
         },
       },
     },
   });
 
-  const assignedUserIds = assignedMembers.map(
-    (m) => m.user.id
-  );
+  console.log(assignedMembers);
 
-  // All active users
-  const allActiveUsers = await prisma.user.findMany({
+  const assigned = assignedMembers.map((m) => ({
+    id: m.user.id,
+    name: m.user.name,
+    email: m.user.email,
+    hasAssignedTasks: m.user.taskAssignments.length > 0,
+  }));
+
+  const assignedUserIds = assigned.map((u) => u.id);
+
+  //  Available users (active but not assigned)
+  const available = await prisma.user.findMany({
     where: {
       isActive: true,
+      id: { notIn: assignedUserIds },
     },
     select: {
       id: true,
       name: true,
       email: true,
     },
-  });
-
-  const assigned = [];
-  const available = [];
-
-  allActiveUsers.forEach((user) => {
-    if (assignedUserIds.includes(user.id)) {
-      assigned.push(user);
-    } else {
-      available.push(user);
-    }
   });
 
   return { assigned, available };

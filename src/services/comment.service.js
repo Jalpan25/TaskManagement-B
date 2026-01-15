@@ -5,15 +5,18 @@ const { ensureProjectAccess } = require("../utils/projectAccess.util");
 /* CREATE COMMENT */
 exports.createComment = async ({ taskId, userId, content }) => {
   if (!taskId || isNaN(taskId)) {
-    throw { status: 400, message: "Invalid taskId" };
+    throw new Error("Invalid taskId");
   }
-   if (!content || !content.trim()) {
-    throw { status: 400, message: "Comment content is required" };
+
+  if (!content || !content.trim()) {
+    throw new Error("Comment content is required");
   }
+
   if (content.length > 1000) {
-    throw { status: 400, message: "Comment too long" };
+    throw new Error("Comment too long");
   }
-const parsedTaskId = Number(taskId);
+
+  const parsedTaskId = Number(taskId);
 
   const task = await prisma.task.findUnique({
     where: { id: parsedTaskId },
@@ -24,43 +27,37 @@ const parsedTaskId = Number(taskId);
     },
   });
 
-  //NEED projectId
-  const task_projectId=await prisma.task.findFirst({
-    where:{id:parsedTaskId},
-    select:{
-      projectId:true
-    }
-  })
-  ensureProjectAccess(task_projectId.projectId,userId);
-
   if (!task || task.isDeleted) {
-    throw { status: 404, message: "Task not found" };
+    const err = new Error("Task not found");
+    err.status = 404;
+    throw err;
   }
 
-  return prisma.$transaction(async (tx) => {
-    const comment = await tx.comment.create({
+  ensureProjectAccess(task.projectId, userId);
+
+  return await prisma.$transaction(async (tx) => {
+    await tx.comment.create({
       data: {
-        content,
-        taskId,
+        content: content.trim(),
+        taskId: parsedTaskId,
         authorId: userId,
       },
     });
 
     await tx.activityLog.create({
       data: {
-        taskId,
+        taskId: parsedTaskId,
         type: ActivityType.COMMENT_ADDED,
         oldValue: null,
-        newValue: content,
+        newValue: content.trim().slice(0, 300),
         createdById: userId,
       },
     });
-    const response={
-      response:"successfully comment created"
-    }
-    return response;
+
+    return { message: "Comment created successfully" };
   });
 };
+
 
 /* GET COMMENTS BY TASKID */
 exports.getCommentsByTask = async (taskId,userId) => {
@@ -94,8 +91,8 @@ exports.getCommentsByTask = async (taskId,userId) => {
   // });
 
     const comments = await prisma.comment.findMany({
-    where: { taskId: parsedTaskId },
-    orderBy: { createdAt: "asc" },
+    where: { taskId: parsedTaskId,isDeleted:false },
+    orderBy: { createdAt: "desc" },
     select: {
       id: true,
       content: true,
@@ -167,7 +164,7 @@ exports.updateComment = async ({ commentId, userId, content }) => {
   }
 
 
- prisma.$transaction(async (tx) => {
+ await prisma.$transaction(async (tx) => {
     const updated = await tx.comment.update({
       where: { id: parsedCommentId },
       data: { content: content.trim() },
