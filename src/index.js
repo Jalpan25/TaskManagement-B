@@ -9,6 +9,7 @@ const taskRoutes = require("./routes/task.routes")
 const commentRoutes = require("./routes/comment.routes");
 const selfDeatilsRoutes=require("./routes/selfDetails.routes");
 projectActivityLogRoutes=require("./routes/projectActivityLog.routes")
+const {apiLimiter}=require("./middleware/rateLimiter.middleware")
 const app = express();
 
 app.use(cors());
@@ -22,25 +23,25 @@ const PORT = process.env.PORT || 5000;
 //   res.send("Task Manager API is running");
 // });
 
-app.use("/auth", authRoutes);
-app.use("/projects", projectRoutes);
+app.use("/auth", apiLimiter,authRoutes);
+app.use("/projects",apiLimiter, projectRoutes);
 app.use(
-  "/projects",
+  "/projects",apiLimiter,
   projectAssignmentRoutes
 );
 
-app.use("/tasks", projectActivityLogRoutes);
+app.use("/tasks",apiLimiter, projectActivityLogRoutes);
 
 
 //USER PAGE FIRST PAGE API
-app.use("/user", userRoutes);
+app.use("/user",apiLimiter, userRoutes);
 //TASK ROUTES ARE HERE
-app.use("/", taskRoutes);
+app.use("/",apiLimiter, taskRoutes);
 
 //Comment CRUD
-app.use("/", commentRoutes);
+app.use("/",apiLimiter, commentRoutes);
 
-app.use("/",selfDeatilsRoutes);
+app.use("/",apiLimiter,selfDeatilsRoutes);
 
 
 app.listen(PORT, () => {
