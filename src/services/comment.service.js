@@ -12,7 +12,7 @@ exports.createComment = async ({ taskId, userId, content }) => {
     throw new Error("Comment content is required");
   }
 
-  if (content.length > 1000) {
+  if (content.length > 300) {
     throw new Error("Comment too long");
   }
 

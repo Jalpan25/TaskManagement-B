@@ -7,6 +7,7 @@ const projectAssignmentRoutes = require("./routes/projectAssignment.routes");
 const userRoutes = require("./routes/user.routes")
 const taskRoutes = require("./routes/task.routes")
 const commentRoutes = require("./routes/comment.routes");
+const selfDeatilsRoutes=require("./routes/selfDetails.routes");
 projectActivityLogRoutes=require("./routes/projectActivityLog.routes")
 const app = express();
 
@@ -38,6 +39,8 @@ app.use("/", taskRoutes);
 
 //Comment CRUD
 app.use("/", commentRoutes);
+
+app.use("/",selfDeatilsRoutes);
 
 
 app.listen(PORT, () => {

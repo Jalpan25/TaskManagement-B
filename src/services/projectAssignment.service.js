@@ -68,6 +68,7 @@ exports.addMembers = async ({ projectId, members }) => {
       message: "All users are already members of this project",
     };
   }
+  // console.log(newMembers);
 
   // Insert members
   await prisma.projectMember.createMany({
@@ -200,7 +201,7 @@ exports.getAvailableUsersForProject = async (projectId) => {
     },
   });
 
-  console.log(assignedMembers);
+  // console.log(assignedMembers);
 
   const assigned = assignedMembers.map((m) => ({
     id: m.user.id,

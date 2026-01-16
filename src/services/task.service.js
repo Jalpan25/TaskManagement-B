@@ -123,7 +123,7 @@ if (assigneeIds !== undefined) {
 }
 
 
-  // ✅ Create task
+  //  Create task
 return prisma.$transaction(async (tx) => {
   const task = await tx.task.create({
     data: {

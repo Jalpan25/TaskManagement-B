@@ -8,7 +8,7 @@ exports.getTaskActivityLogs = async ({
   limit = 20,
   cursor,
 }) => {
-  // 1️⃣ Fetch task + projectId
+  //  Fetch task + projectId
   const task = await prisma.task.findUnique({
     where: { id: taskId },
     select: {
@@ -22,10 +22,10 @@ exports.getTaskActivityLogs = async ({
     throw { status: 404, message: "Task not found" };
   }
 
-  // 2️⃣ Ensure user has access to task's project
+  //  Ensure user has access to task's project
   await ensureProjectAccess(task.projectId, userId);
 
-  // 3️⃣ Fetch activity logs for this task
+  //  Fetch activity logs for this task
   const logs = await prisma.activityLog.findMany({
     where: {
       taskId: taskId,
